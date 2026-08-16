@@ -68,6 +68,21 @@ python scripts/rebuild_dataset.py --source philosophy_se \
 `--source` accepts any of the 22 (e.g. `wildchat`, `lesswrong`, `se_hermeneutics`,
 `arena_140k`, …). See `scores/README.md` for the list and per-source join keys.
 
+**What rebuilding downloads.** 20 of the 22 sources are public and fetched
+automatically (cached in `runs/_sources/`). The exceptions:
+
+- `wildchat` — public, but the join streams the full **~15 GB** of WildChat
+  parquet (one file at a time; only the file being scanned is kept on disk).
+- `lmsys` — **gated**: accept the terms at
+  [lmsys/lmsys-chat-1m](https://huggingface.co/datasets/lmsys/lmsys-chat-1m), then
+  either put a HF read token in `$HF_TOKEN` (or `~/.cache/huggingface/token`), or
+  download the repo's `data/*.parquet` in a browser into `runs/_sources/lmsys/`.
+
+Note on source availability: the LessWrong/EA Forum dumps live on a personal HF
+account (`x65617379/*`, 2026-05 snapshots). If those repos disappear, equivalent
+data can be re-exported from the forums' GraphQL API (the dumps' own origin), but
+post `_id`s must match for the keys to join.
+
 **Or just filter the scores directly:**
 
 ```python

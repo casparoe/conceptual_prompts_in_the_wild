@@ -29,6 +29,7 @@ import json
 import os
 import re
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -193,7 +194,17 @@ def src_lmsys():
                 for b in pq.ParquetFile(f).iter_batches(batch_size=200, columns=cols):
                     yield from b.to_pylist()
         else:
-            yield from _stream_parquet("lmsys/lmsys-chat-1m", cols, "_lmsys_tmp.parquet")
+            try:
+                yield from _stream_parquet("lmsys/lmsys-chat-1m", cols, "_lmsys_tmp.parquet")
+            except urllib.error.HTTPError as e:
+                if e.code in (401, 403):
+                    sys.exit(
+                        "LMSYS-Chat-1M is gated. To access it either:\n"
+                        "  (a) accept the terms at huggingface.co/datasets/lmsys/lmsys-chat-1m,\n"
+                        "      then put a read token in $HF_TOKEN or ~/.cache/huggingface/token; or\n"
+                        "  (b) download the repo's data/*.parquet files in a browser and place\n"
+                        f"      them in {local_dir}/")
+                raise
 
     for r in _rows():
         if (r.get("language") or "").lower() != "english":
