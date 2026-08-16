@@ -22,6 +22,8 @@ prompts, re-fetch the public source and join on `key` (see
 | `lesswrong_questions.parquet` | LessWrong "Question" posts | 2,689 | post `_id` in `x65617379/lesswrong_260509` (config `raw`) |
 | `eaforum_questions.parquet` | EA Forum `?`-title posts | 1,060 | `post_id` in `x65617379/eaforum_260506` |
 | `philosophy_se.parquet` | Philosophy StackExchange | 17,998 | `blake2b(instruction)` in `mlfoundations-dev/stackexchange_philosophy` (see recipe below) |
+| `sharegpt.parquet` | ShareGPT (shared ChatGPT convos) | 68,582 | `id` in `anon8231489123/ShareGPT_Vicuna_unfiltered` (`ShareGPT_V3_unfiltered_cleaned_split.json`) |
+| `prism.parquet` | PRISM (values-laden assistant prompts) | 7,764 | `conversation_id` in `HannahRoseKirk/prism-alignment` (config `conversations`) |
 
 ## Columns
 
@@ -52,9 +54,10 @@ hits = t[(t.status=="ok") & (t.conceptual>=2) & (t.novelty>=2) & (t.well_formed>
 
 ## Yields (strong = conceptual≥2, novelty≥2, well_formed≥2)
 
-WildChat 481 · LessWrong 685 · EA Forum 230 · Philosophy SE 5,223 = **6,619 total**
-(16,719 at conceptual≥2). Note the density gap: WildChat is 0.08% strong; the
-forum/Q&A sources are 22–29%.
+Philosophy SE 5,223 · LessWrong 685 · WildChat 481 · EA Forum 230 · ShareGPT 72 ·
+PRISM 10 = **6,701 total** (17,870 at conceptual≥2). Note the density gap: organic
+chat logs (WildChat, ShareGPT, PRISM) are ~0.1% strong; the forum/Q&A question
+sources are 22–29%.
 
 ## Philosophy SE key recipe
 

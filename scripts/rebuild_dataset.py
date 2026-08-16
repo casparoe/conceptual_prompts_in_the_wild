@@ -38,6 +38,10 @@ SOURCES = {
                       "adapter": "eaforum_questions"},
     "philosophy_se": {"scores": "scores/philosophy_se.parquet", "kind": "adapter",
                       "adapter": "philosophy_se"},
+    "sharegpt":      {"scores": "scores/sharegpt.parquet", "kind": "adapter",
+                      "adapter": "sharegpt"},
+    "prism":         {"scores": "scores/prism.parquet", "kind": "adapter",
+                      "adapter": "prism"},
 }
 
 

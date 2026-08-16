@@ -47,20 +47,25 @@ def strip_html(h: str) -> str:
     return html.unescape(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", h or ""))).strip()
 
 
-def ensure(path: Path, url: str) -> Path:
-    if path.exists():
-        return path
-    path.parent.mkdir(parents=True, exist_ok=True)
-    print(f"  downloading {path.name} …", flush=True)
+def download_to(url: str, path: Path) -> None:
+    """Stream a URL to path, sending the HF token if set (needed for gated datasets)."""
     tmp = path.with_suffix(path.suffix + ".part")
-    req = urllib.request.Request(url, headers={"User-Agent": "conceptual-research/0.1"})
-    with urllib.request.urlopen(req, timeout=180) as r, open(tmp, "wb") as f:
+    req = urllib.request.Request(url, headers=bc.hf_headers())
+    with urllib.request.urlopen(req, timeout=300) as r, open(tmp, "wb") as f:
         while True:
             chunk = r.read(1 << 20)
             if not chunk:
                 break
             f.write(chunk)
     os.replace(tmp, path)
+
+
+def ensure(path: Path, url: str) -> Path:
+    if path.exists():
+        return path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    print(f"  downloading {path.name} …", flush=True)
+    download_to(url, path)
     return path
 
 
@@ -130,9 +135,84 @@ def src_philosophy_se():
                                 "country": None, "src_model": "human"}}
 
 
+def src_prism():
+    f = ensure(SOURCES_DIR / "prism_conversations.parquet",
+               "https://huggingface.co/datasets/HannahRoseKirk/prism-alignment/"
+               "resolve/refs%2Fconvert%2Fparquet/conversations/train/0000.parquet")
+    cols = ["conversation_id", "conversation_type", "conversation_history",
+            "generated_datetime"]
+    for b in pq.ParquetFile(f).iter_batches(batch_size=200, columns=cols):
+        for r in b.to_pylist():
+            # score the human side only (PRISM pairs multiple model candidates per turn)
+            turns = [{"role": "user", "content": t.get("content") or ""}
+                     for t in (r.get("conversation_history") or []) if t.get("role") == "user"]
+            turns = [t for t in turns if t["content"].strip()]
+            if not turns:
+                continue
+            yield {"id": r.get("conversation_id"),
+                   "conversation": turns,
+                   "manifest": {"source": "prism", "title": None, "url": None, "base_score": None,
+                                "timestamp": str(r.get("generated_datetime")), "language": "English",
+                                "country": None, "src_model": "human",
+                                "conversation_type": r.get("conversation_type")}}
+
+
+def src_sharegpt():
+    f = ensure(SOURCES_DIR / "sharegpt_v3.json",
+               "https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/"
+               "resolve/main/ShareGPT_V3_unfiltered_cleaned_split.json")
+    data = json.load(open(f, encoding="utf-8"))
+    for obj in data:
+        conv = []
+        for t in (obj.get("conversations") or []):
+            role = "user" if t.get("from") in ("human", "user", "system") else "assistant"
+            conv.append({"role": role, "content": t.get("value") or ""})
+        conv = [t for t in conv if t["content"].strip()]
+        if not conv:
+            continue
+        yield {"id": str(obj.get("id")),
+               "conversation": conv,
+               "manifest": {"source": "sharegpt", "title": None, "url": None, "base_score": None,
+                            "timestamp": None, "language": None, "country": None,
+                            "src_model": "unknown"}}
+
+
+def src_lmsys():
+    # LMSYS-Chat-1M is gated: needs HF_TOKEN (accept terms on the dataset page first).
+    listing = "https://datasets-server.huggingface.co/parquet?dataset=lmsys%2Flmsys-chat-1m"
+    req = urllib.request.Request(listing, headers=bc.hf_headers())
+    files = [f for f in json.load(urllib.request.urlopen(req, timeout=120))["parquet_files"]
+             if f["split"] == "train"]
+    tmp = SOURCES_DIR / "_lmsys_tmp.parquet"
+    SOURCES_DIR.mkdir(parents=True, exist_ok=True)
+    for i, fi in enumerate(files):
+        print(f"  lmsys parquet {i + 1}/{len(files)} …", flush=True)
+        download_to(fi["url"], tmp)
+        for b in pq.ParquetFile(tmp).iter_batches(
+                batch_size=200, columns=["conversation_id", "model", "conversation", "language"]):
+            for r in b.to_pylist():
+                if (r.get("language") or "").lower() != "english":
+                    continue
+                conv = [{"role": t.get("role"), "content": t.get("content") or ""}
+                        for t in (r.get("conversation") or [])]
+                conv = [t for t in conv if t["content"].strip()]
+                if not conv:
+                    continue
+                yield {"id": r.get("conversation_id"),
+                       "conversation": conv,
+                       "manifest": {"source": "lmsys", "title": None, "url": None,
+                                    "base_score": None, "timestamp": None, "language": "English",
+                                    "country": None, "src_model": r.get("model")}}
+    if tmp.exists():
+        tmp.unlink()
+
+
 ADAPTERS = {"lesswrong_questions": src_lesswrong_questions,
             "eaforum_questions": src_eaforum_questions,
-            "philosophy_se": src_philosophy_se}
+            "philosophy_se": src_philosophy_se,
+            "prism": src_prism,
+            "sharegpt": src_sharegpt,
+            "lmsys": src_lmsys}
 
 
 def first_user(conv):
