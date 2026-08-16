@@ -48,6 +48,8 @@ SOURCES = {
                       "adapter": "arena_expert"},
     "oasst2":        {"scores": "scores/oasst2.parquet", "kind": "adapter",
                       "adapter": "oasst2"},
+    **{f"se_{s}": {"scores": f"scores/se_{s}.parquet", "kind": "se", "site": s}
+       for s in ("hermeneutics", "linguistics", "law", "hsm", "politics", "christianity")},
 }
 
 
@@ -65,11 +67,13 @@ def load_selected(scores_path: Path, mc: int, mn: int, mw: int) -> dict:
     return sel
 
 
-def rebuild_adapter(adapter_name: str, sel: dict, source: str) -> list:
+def rebuild_adapter(gen_fn, sel: dict, source: str) -> list:
     out = []
-    for rec in cs.ADAPTERS[adapter_name]():
+    seen = set()  # emit each selected key once (raw sources can repeat a key; prepare deduped)
+    for rec in gen_fn():
         k = str(rec["id"])
-        if k in sel:
+        if k in sel and k not in seen:
+            seen.add(k)
             out.append({"key": k, "source": source, **sel[k],
                         "url": rec["manifest"].get("url"),
                         "title": rec["manifest"].get("title"),
@@ -123,8 +127,10 @@ def main():
 
     if spec["kind"] == "wildchat":
         out = rebuild_wildchat(sel)
+    elif spec["kind"] == "se":
+        out = rebuild_adapter(lambda: cs._stackexchange(spec["site"]), sel, args.source)
     else:
-        out = rebuild_adapter(spec["adapter"], sel, args.source)
+        out = rebuild_adapter(lambda: cs.ADAPTERS[spec["adapter"]](), sel, args.source)
 
     outpath = Path(args.out or (REPO_ROOT / "runs" / "rebuilt" /
                    f"{args.source}_c{args.min_conceptual}n{args.min_novelty}w{args.min_wellformed}.jsonl"))

@@ -27,6 +27,12 @@ prompts, re-fetch the public source and join on `key` (see
 | `arena_140k.parquet` | Chatbot Arena (organic) | 66,198 | `id` in `lmarena-ai/arena-human-preference-140k` |
 | `arena_expert.parquet` | Chatbot Arena (expert-curated) | 2,846 | `id` in `lmarena-ai/arena-expert-5k` |
 | `oasst2.parquet` | OpenAssistant (English root prompts) | 5,076 | `message_id` in `OpenAssistant/oasst2` |
+| `se_hermeneutics.parquet` | StackExchange: hermeneutics | 14,750 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_hermeneutics` |
+| `se_christianity.parquet` | StackExchange: christianity | 16,698 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_christianity` |
+| `se_law.parquet` | StackExchange: law | 22,830 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_law` |
+| `se_politics.parquet` | StackExchange: politics | 17,153 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_politics` |
+| `se_linguistics.parquet` | StackExchange: linguistics | 11,119 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_linguistics` |
+| `se_hsm.parquet` | StackExchange: history of sci/math | 4,564 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_hsm` |
 
 ## Columns
 
@@ -57,23 +63,31 @@ hits = t[(t.status=="ok") & (t.conceptual>=2) & (t.novelty>=2) & (t.well_formed>
 
 ## Yields (strong = conceptual≥2, novelty≥2, well_formed≥2)
 
-Philosophy SE 5,223 · LessWrong 685 · WildChat 481 · arena_140k 302 · EA Forum 230 ·
-ShareGPT 72 · arena_expert 66 · oasst2 13 · PRISM 10 = **7,082 total** (19,566 at
-conceptual≥2; 449 at novelty=3). Density gaps worth knowing:
-- forum/Q&A **question** corpora (Philosophy SE, LessWrong/EA questions): 22–29% strong;
+**15,591 strong across 15 sources** (45,023 at conceptual≥2; 805 at novelty=3). Top:
+Philosophy SE 5,223 · SE-hermeneutics 2,594 · SE-christianity 1,967 · SE-law 1,789 ·
+SE-politics 1,017 · SE-linguistics 904 · LessWrong 685 · WildChat 481 · arena_140k 302 ·
+SE-hsm 238 · EA Forum 230 · ShareGPT 72 · arena_expert 66 · oasst2 13 · PRISM 10.
+
+Density gaps worth knowing:
+- **question/Q&A corpora** are richest: Philosophy SE 29%, hermeneutics 18%, christianity
+  12%, LessWrong/EA questions 22–25%, linguistics/law/hsm/politics 5–8%;
 - **general** chat logs (WildChat, ShareGPT, PRISM): ~0.1% strong;
-- **Chatbot Arena** chat is in between — `arena_140k` 0.46% (AI-savvy population) and the
-  difficulty-curated `arena_expert` 2.32% — the best *organic* sources found.
+- **Chatbot Arena** chat is in between — arena_140k 0.46%, difficulty-curated arena_expert
+  2.32% (best *organic* sources). Density tracks the population/format, not raw size.
 
-## Philosophy SE key recipe
+## StackExchange key recipe
 
-The source dataset has no native id, so the key is derived from the question text:
+The `mlfoundations-dev/stackexchange_*` datasets have no native id, so the key is
+blake2b of the first question text:
 
 ```python
 import hashlib
-q = row["instruction"] or row["conversations"][0]["value"]
+q = row.get("instruction") or row["conversations"][0]["value"]
 key = hashlib.blake2b(q.encode("utf-8", "replace"), digest_size=12).hexdigest()
 ```
+
+(`philosophy_se` used `instruction`; the other SE sites use `conversations[0]["value"]` —
+the line above handles both. `scripts/rebuild_dataset.py --source se_<site>` does it for you.)
 
 ## Provenance
 

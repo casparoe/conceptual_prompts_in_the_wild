@@ -343,8 +343,35 @@ def first_user(conv):
     return ""
 
 
+def _stackexchange(site):
+    """Generic adapter for any mlfoundations-dev/stackexchange_<site> (conversation-formatted)."""
+    repo = f"mlfoundations-dev/stackexchange_{site}"
+    for r in _stream_parquet(repo, ["conversations"], "_se_tmp.parquet"):
+        conv = []
+        for t in (r.get("conversations") or []):
+            role = "user" if t.get("from") in ("human", "user", "system") else "assistant"
+            conv.append({"role": role, "content": t.get("value") or ""})
+        conv = [t for t in conv if t["content"].strip()]
+        if not conv:
+            continue
+        q = conv[0]["content"]
+        yield {"id": hashlib.blake2b(q.encode("utf-8", "replace"), digest_size=12).hexdigest(),
+               "conversation": conv,
+               "manifest": {"source": f"se_{site}", "title": q[:100], "url": None,
+                            "base_score": None, "timestamp": None, "language": "English",
+                            "country": None, "src_model": "human"}}
+
+
 def cmd_prepare(args):
-    run_dir = Path(args.run_dir or (REPO_ROOT / "runs" / args.source))
+    if args.source == "stackexchange":
+        if not getattr(args, "se_site", None):
+            sys.exit("--se-site is required when --source stackexchange")
+        gen = lambda: _stackexchange(args.se_site)
+        source_name = f"se_{args.se_site}"
+    else:
+        gen = ADAPTERS[args.source]
+        source_name = args.source
+    run_dir = Path(args.run_dir or (REPO_ROOT / "runs" / source_name))
     shards_dir = run_dir / "shards"
     shards_dir.mkdir(parents=True, exist_ok=True)
     env = Environment(loader=FileSystemLoader(REPO_ROOT / "prompts"), undefined=StrictUndefined)
@@ -353,7 +380,7 @@ def cmd_prepare(args):
         (REPO_ROOT / "prompts" / "conceptual_classifier.jinja").read_bytes()).hexdigest()[:16]
 
     bc.write_json_atomic(run_dir / "config.json", {
-        "dataset": args.source, "language": "n/a", "dedup_prefix": bc.DEDUP_PREFIX,
+        "dataset": source_name, "language": "n/a", "dedup_prefix": bc.DEDUP_PREFIX,
         "model": args.model, "max_tokens": bc.MAX_TOKENS, "schema_sha": bc.sha_json(bc.SCORE_SCHEMA),
         "template_sha": tmpl_sha, "shard_max_requests": bc.SHARD_MAX_REQUESTS,
         "shard_max_bytes": bc.SHARD_MAX_BYTES, "created_at": bc.now_utc_iso()})
@@ -376,7 +403,7 @@ def cmd_prepare(args):
         sub += 1
         cur, cur_bytes, cur_cnt = [], 0, 0
 
-    for rec in ADAPTERS[args.source]():
+    for rec in gen():
         if rec["id"] in seen_ids:
             continue
         seen_ids.add(rec["id"])
@@ -420,7 +447,9 @@ def main():
     ap.add_argument("--run-dir", default=None)
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("prepare")
-    p.add_argument("--source", required=True, choices=list(ADAPTERS))
+    p.add_argument("--source", required=True, choices=list(ADAPTERS) + ["stackexchange"])
+    p.add_argument("--se-site", default=None,
+                   help="StackExchange site name when --source stackexchange (e.g. hermeneutics)")
     p.add_argument("--model", default=bc.MODEL_DEFAULT)
     p.set_defaults(func=cmd_prepare)
     args = ap.parse_args()
