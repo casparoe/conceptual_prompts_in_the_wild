@@ -29,6 +29,7 @@ import json
 import os
 import re
 import sys
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -207,12 +208,132 @@ def src_lmsys():
         tmp.unlink()
 
 
+def _hf_train_parquet_urls(repo):
+    listing = ("https://datasets-server.huggingface.co/parquet?dataset="
+               + urllib.parse.quote(repo, safe=""))
+    req = urllib.request.Request(listing, headers=bc.hf_headers())
+    data = json.load(urllib.request.urlopen(req, timeout=120))
+    return [f["url"] for f in data["parquet_files"] if f["split"] == "train"]
+
+
+def _stream_parquet(repo, columns, tmp_name):
+    """Yield row dicts across all of a dataset's train parquet files (token-aware)."""
+    SOURCES_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = SOURCES_DIR / tmp_name
+    urls = _hf_train_parquet_urls(repo)
+    for i, url in enumerate(urls):
+        print(f"    {repo} parquet {i + 1}/{len(urls)} …", flush=True)
+        download_to(url, tmp)
+        for b in pq.ParquetFile(tmp).iter_batches(batch_size=300, columns=columns):
+            yield from b.to_pylist()
+    if tmp.exists():
+        tmp.unlink()
+
+
+def _blocks_text(content):
+    """Flatten an Arena content field (string, or list of {type,text} blocks)."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, (list, tuple)):
+        return " ".join(b.get("text") or "" for b in content
+                        if isinstance(b, dict) and b.get("type") == "text")
+    return ""
+
+
+_ARENA_ROLE_RE = re.compile(r"'role':\s*'(user|assistant)'")
+_ARENA_ESC = {"n": "\n", "t": "\t", "r": "\r"}
+
+
+def _read_quoted(s, i):
+    q = s[i]
+    i += 1
+    out = []
+    while i < len(s):
+        c = s[i]
+        if c == "\\" and i + 1 < len(s):
+            out.append(_ARENA_ESC.get(s[i + 1], s[i + 1]))
+            i += 2
+        elif c == q:
+            return "".join(out)
+        else:
+            out.append(c)
+            i += 1
+    return "".join(out)
+
+
+def _parse_arena_str(s):
+    """Extract [(role, text)] from Arena's stringified-numpy conversation field
+    (numpy-array repr: elements newline-separated, mixed quoting, so not literal-parseable)."""
+    matches = list(_ARENA_ROLE_RE.finditer(s))
+    starts = [m.start() for m in matches]
+    turns = []
+    for i, m in enumerate(matches):
+        nxt = starts[i + 1] if i + 1 < len(starts) else len(s)
+        ti = s.find("'text':", m.end(), nxt)
+        if ti == -1:
+            continue
+        j = ti + 7
+        while j < nxt and s[j] in " \t\n":
+            j += 1
+        if j < nxt and s[j] in ("'", '"'):
+            turns.append((m.group(1), _read_quoted(s, j)))
+    return turns
+
+
+def _arena(repo, label):
+    for r in _stream_parquet(repo, ["id", "conversation_a", "language"], "_arena_tmp.parquet"):
+        if (r.get("language") or "").lower() not in ("en", "english"):
+            continue
+        ca = r.get("conversation_a")
+        if isinstance(ca, str):  # arena-expert stores conversations as stringified numpy
+            conv = [{"role": "user", "content": txt}
+                    for role, txt in _parse_arena_str(ca) if role == "user" and txt.strip()]
+        else:
+            conv = [{"role": "user", "content": _blocks_text(t.get("content"))}
+                    for t in (ca or []) if isinstance(t, dict) and t.get("role") == "user"]
+            conv = [t for t in conv if t["content"].strip()]
+        if not conv:
+            continue
+        yield {"id": r.get("id"), "conversation": conv,
+               "manifest": {"source": label, "title": None, "url": None, "base_score": None,
+                            "timestamp": None, "language": "English", "country": None,
+                            "src_model": "human"}}
+
+
+def src_arena_140k():
+    yield from _arena("lmarena-ai/arena-human-preference-140k", "arena_140k")
+
+
+def src_arena_expert():
+    yield from _arena("lmarena-ai/arena-expert-5k", "arena_expert")
+
+
+def src_oasst2():
+    cols = ["message_id", "parent_id", "text", "role", "lang", "deleted"]
+    for r in _stream_parquet("OpenAssistant/oasst2", cols, "_oasst_tmp.parquet"):
+        # English root prompts only (the initial human ask of each tree)
+        if r.get("role") != "prompter" or r.get("parent_id") is not None or r.get("deleted"):
+            continue
+        if (r.get("lang") or "") != "en":
+            continue
+        txt = (r.get("text") or "").strip()
+        if not txt:
+            continue
+        yield {"id": r.get("message_id"), "conversation": [{"role": "user", "content": txt}],
+               "manifest": {"source": "oasst2", "title": None, "url": None, "base_score": None,
+                            "timestamp": None, "language": "English", "country": None,
+                            "src_model": "human"}}
+
+
 ADAPTERS = {"lesswrong_questions": src_lesswrong_questions,
             "eaforum_questions": src_eaforum_questions,
             "philosophy_se": src_philosophy_se,
             "prism": src_prism,
             "sharegpt": src_sharegpt,
-            "lmsys": src_lmsys}
+            "lmsys": src_lmsys,
+            "arena_140k": src_arena_140k,
+            "arena_expert": src_arena_expert,
+            "oasst2": src_oasst2}
 
 
 def first_user(conv):

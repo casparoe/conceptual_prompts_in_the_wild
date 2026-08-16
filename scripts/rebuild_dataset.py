@@ -42,6 +42,12 @@ SOURCES = {
                       "adapter": "sharegpt"},
     "prism":         {"scores": "scores/prism.parquet", "kind": "adapter",
                       "adapter": "prism"},
+    "arena_140k":    {"scores": "scores/arena_140k.parquet", "kind": "adapter",
+                      "adapter": "arena_140k"},
+    "arena_expert":  {"scores": "scores/arena_expert.parquet", "kind": "adapter",
+                      "adapter": "arena_expert"},
+    "oasst2":        {"scores": "scores/oasst2.parquet", "kind": "adapter",
+                      "adapter": "oasst2"},
 }
 
 
