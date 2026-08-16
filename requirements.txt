@@ -1,0 +1,4 @@
+# Developed on Python 3.14; 3.10+ should work.
+anthropic>=0.121      # Messages / Batch API + structured outputs
+pyarrow>=25.0         # reading source Parquet + writing score tables
+jinja2>=3.1           # rendering the classifier prompt
