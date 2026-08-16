@@ -49,7 +49,8 @@ SOURCES = {
     "oasst2":        {"scores": "scores/oasst2.parquet", "kind": "adapter",
                       "adapter": "oasst2"},
     **{f"se_{s}": {"scores": f"scores/se_{s}.parquet", "kind": "se", "site": s}
-       for s in ("hermeneutics", "linguistics", "law", "hsm", "politics", "christianity")},
+       for s in ("hermeneutics", "linguistics", "law", "hsm", "politics", "christianity",
+                 "opensource", "mythology", "parenting", "vegetarianism")},
 }
 
 

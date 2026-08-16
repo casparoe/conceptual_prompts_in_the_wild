@@ -33,6 +33,10 @@ prompts, re-fetch the public source and join on `key` (see
 | `se_politics.parquet` | StackExchange: politics | 17,153 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_politics` |
 | `se_linguistics.parquet` | StackExchange: linguistics | 11,119 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_linguistics` |
 | `se_hsm.parquet` | StackExchange: history of sci/math | 4,564 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_hsm` |
+| `se_opensource.parquet` | StackExchange: open source | 4,758 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_opensource` |
+| `se_parenting.parquet` | StackExchange: parenting | 6,871 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_parenting` |
+| `se_mythology.parquet` | StackExchange: mythology | 2,038 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_mythology` |
+| `se_vegetarianism.parquet` | StackExchange: vegetarianism | 760 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_vegetarianism` |
 
 ## Columns
 
@@ -63,7 +67,7 @@ hits = t[(t.status=="ok") & (t.conceptual>=2) & (t.novelty>=2) & (t.well_formed>
 
 ## Yields (strong = conceptual≥2, novelty≥2, well_formed≥2)
 
-**15,591 strong across 15 sources** (45,023 at conceptual≥2; 805 at novelty=3). Top:
+**15,937 strong across 19 sources** (46,005 at conceptual≥2; 821 at novelty=3). Top:
 Philosophy SE 5,223 · SE-hermeneutics 2,594 · SE-christianity 1,967 · SE-law 1,789 ·
 SE-politics 1,017 · SE-linguistics 904 · LessWrong 685 · WildChat 481 · arena_140k 302 ·
 SE-hsm 238 · EA Forum 230 · ShareGPT 72 · arena_expert 66 · oasst2 13 · PRISM 10.
