@@ -109,10 +109,21 @@ def http_get_json(url: str, tries: int = 6) -> dict:
             else:
                 wait = 2**attempt
             time.sleep(wait)
-        except urllib.error.URLError:
+        except urllib.error.URLError as e:
             if attempt == tries - 1:
                 raise
-            time.sleep(2**attempt)
+            wait = 2**attempt
+            print(f"  (network error: {e.reason}; retrying in {wait:.0f}s...)", flush=True)
+            time.sleep(wait)
+        except OSError as e:
+            # Raw socket errors — TimeoutError on a slow read, ConnectionResetError,
+            # etc. — are OSError subclasses but NOT urllib.error.URLError, so they
+            # would otherwise escape the retry loop and crash the whole scan.
+            if attempt == tries - 1:
+                raise
+            wait = 2**attempt
+            print(f"  (network {type(e).__name__}; retrying in {wait:.0f}s...)", flush=True)
+            time.sleep(wait)
     raise AssertionError("unreachable")
 
 

@@ -2,3 +2,6 @@
 __pycache__/
 .DS_Store
 docs_re_what_is_cr/
+runs/
+*.parquet
+*.log
