@@ -37,6 +37,8 @@ prompts, re-fetch the public source and join on `key` (see
 | `se_parenting.parquet` | StackExchange: parenting | 6,871 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_parenting` |
 | `se_mythology.parquet` | StackExchange: mythology | 2,038 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_mythology` |
 | `se_vegetarianism.parquet` | StackExchange: vegetarianism | 760 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_vegetarianism` |
+| `se_matheducators.parquet` | StackExchange: math educators | 3,763 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_matheducators` |
+| `se_cseducators.parquet` | StackExchange: CS educators | 1,208 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_cseducators` |
 
 ## Columns
 
@@ -67,7 +69,7 @@ hits = t[(t.status=="ok") & (t.conceptual>=2) & (t.novelty>=2) & (t.well_formed>
 
 ## Yields (strong = conceptual≥2, novelty≥2, well_formed≥2)
 
-**15,937 strong across 19 sources** (46,005 at conceptual≥2; 821 at novelty=3). Top:
+**16,174 strong across 21 sources** (46,610 at conceptual≥2; 829 at novelty=3). Top:
 Philosophy SE 5,223 · SE-hermeneutics 2,594 · SE-christianity 1,967 · SE-law 1,789 ·
 SE-politics 1,017 · SE-linguistics 904 · LessWrong 685 · WildChat 481 · arena_140k 302 ·
 SE-hsm 238 · EA Forum 230 · ShareGPT 72 · arena_expert 66 · oasst2 13 · PRISM 10.
