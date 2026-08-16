@@ -124,3 +124,7 @@ underlying data, respect each source's license; some are restrictive.
 **Code and prompt** (`scripts/`, `prompts/`) are MIT-licensed (see `LICENSE`). The
 **scores** are provided as-is as derived metadata; the underlying conversations
 are governed by the sources above.
+
+# Note on the use of LLMs
+
+Everything you're seeing here (except for this section) is written by Opus/Fable. This includes the prompt for scoring the prompts in the source datasets. I have only given high-level instructions on this projects and done some very validation on the classification prompt.
