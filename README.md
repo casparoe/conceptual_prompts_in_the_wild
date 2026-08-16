@@ -127,4 +127,4 @@ are governed by the sources above.
 
 # Note on the use of LLMs
 
-Everything you're seeing here (except for this section) is written by Opus/Fable. This includes the prompt for scoring the prompts in the source datasets. I have only given high-level instructions on this projects and done some very validation on the classification prompt.
+Everything you're seeing here (except for this section) is written by Opus/Fable. This includes the prompt for scoring the prompts in the source datasets. I have only given high-level instructions on this projects and done some limited validation on the classification prompt.
