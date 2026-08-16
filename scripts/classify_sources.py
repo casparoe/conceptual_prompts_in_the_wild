@@ -179,33 +179,34 @@ def src_sharegpt():
 
 
 def src_lmsys():
-    # LMSYS-Chat-1M is gated: needs HF_TOKEN (accept terms on the dataset page first).
-    listing = "https://datasets-server.huggingface.co/parquet?dataset=lmsys%2Flmsys-chat-1m"
-    req = urllib.request.Request(listing, headers=bc.hf_headers())
-    files = [f for f in json.load(urllib.request.urlopen(req, timeout=120))["parquet_files"]
-             if f["split"] == "train"]
-    tmp = SOURCES_DIR / "_lmsys_tmp.parquet"
-    SOURCES_DIR.mkdir(parents=True, exist_ok=True)
-    for i, fi in enumerate(files):
-        print(f"  lmsys parquet {i + 1}/{len(files)} …", flush=True)
-        download_to(fi["url"], tmp)
-        for b in pq.ParquetFile(tmp).iter_batches(
-                batch_size=200, columns=["conversation_id", "model", "conversation", "language"]):
-            for r in b.to_pylist():
-                if (r.get("language") or "").lower() != "english":
-                    continue
-                conv = [{"role": t.get("role"), "content": t.get("content") or ""}
-                        for t in (r.get("conversation") or [])]
-                conv = [t for t in conv if t["content"].strip()]
-                if not conv:
-                    continue
-                yield {"id": r.get("conversation_id"),
-                       "conversation": conv,
-                       "manifest": {"source": "lmsys", "title": None, "url": None,
-                                    "base_score": None, "timestamp": None, "language": "English",
-                                    "country": None, "src_model": r.get("model")}}
-    if tmp.exists():
-        tmp.unlink()
+    # LMSYS-Chat-1M is gated. Two ways in (accept the terms on the dataset page first):
+    #   (a) a token in ~/.cache/huggingface/token or $HF_TOKEN -> streamed automatically; or
+    #   (b) download the repo's parquet file(s) via browser into runs/_sources/lmsys/.
+    cols = ["conversation_id", "model", "conversation", "language"]
+    local_dir = SOURCES_DIR / "lmsys"
+    local = sorted(local_dir.glob("*.parquet")) if local_dir.exists() else []
+
+    def _rows():
+        if local:
+            for f in local:
+                print(f"    lmsys local {f.name}", flush=True)
+                for b in pq.ParquetFile(f).iter_batches(batch_size=200, columns=cols):
+                    yield from b.to_pylist()
+        else:
+            yield from _stream_parquet("lmsys/lmsys-chat-1m", cols, "_lmsys_tmp.parquet")
+
+    for r in _rows():
+        if (r.get("language") or "").lower() != "english":
+            continue
+        conv = [{"role": t.get("role"), "content": t.get("content") or ""}
+                for t in (r.get("conversation") or [])]
+        conv = [t for t in conv if t["content"].strip()]
+        if not conv:
+            continue
+        yield {"id": r.get("conversation_id"), "conversation": conv,
+               "manifest": {"source": "lmsys", "title": None, "url": None, "base_score": None,
+                            "timestamp": None, "language": "English", "country": None,
+                            "src_model": r.get("model")}}
 
 
 def _hf_train_parquet_urls(repo):

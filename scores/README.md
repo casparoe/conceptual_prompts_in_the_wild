@@ -27,6 +27,7 @@ prompts, re-fetch the public source and join on `key` (see
 | `arena_140k.parquet` | Chatbot Arena (organic) | 66,198 | `id` in `lmarena-ai/arena-human-preference-140k` |
 | `arena_expert.parquet` | Chatbot Arena (expert-curated) | 2,846 | `id` in `lmarena-ai/arena-expert-5k` |
 | `oasst2.parquet` | OpenAssistant (English root prompts) | 5,076 | `message_id` in `OpenAssistant/oasst2` |
+| `lmsys.parquet` | LMSYS-Chat-1M (English, deduped) | 421,058 | `conversation_id` in `lmsys/lmsys-chat-1m` (gated — needs token/local files) |
 | `se_hermeneutics.parquet` | StackExchange: hermeneutics | 14,750 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_hermeneutics` |
 | `se_christianity.parquet` | StackExchange: christianity | 16,698 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_christianity` |
 | `se_law.parquet` | StackExchange: law | 22,830 | `blake2b(first question)` in `mlfoundations-dev/stackexchange_law` |
@@ -69,7 +70,7 @@ hits = t[(t.status=="ok") & (t.conceptual>=2) & (t.novelty>=2) & (t.well_formed>
 
 ## Yields (strong = conceptual≥2, novelty≥2, well_formed≥2)
 
-**16,174 strong across 21 sources** (46,610 at conceptual≥2; 829 at novelty=3). Top:
+**16,385 strong across 22 sources** (49,600 at conceptual≥2; 834 at novelty=3). Top:
 Philosophy SE 5,223 · SE-hermeneutics 2,594 · SE-christianity 1,967 · SE-law 1,789 ·
 SE-politics 1,017 · SE-linguistics 904 · LessWrong 685 · WildChat 481 · arena_140k 302 ·
 SE-hsm 238 · EA Forum 230 · ShareGPT 72 · arena_expert 66 · oasst2 13 · PRISM 10.
@@ -77,7 +78,8 @@ SE-hsm 238 · EA Forum 230 · ShareGPT 72 · arena_expert 66 · oasst2 13 · PRI
 Density gaps worth knowing:
 - **question/Q&A corpora** are richest: Philosophy SE 29%, hermeneutics 18%, christianity
   12%, LessWrong/EA questions 22–25%, linguistics/law/hsm/politics 5–8%;
-- **general** chat logs (WildChat, ShareGPT, PRISM): ~0.1% strong;
+- **general** chat logs are poorest: WildChat 0.08%, ShareGPT 0.10%, PRISM 0.13%,
+  LMSYS 0.05% (LMSYS's 2023 Vicuna/Arena traffic is coding/roleplay-heavy);
 - **Chatbot Arena** chat is in between — arena_140k 0.46%, difficulty-curated arena_expert
   2.32% (best *organic* sources). Density tracks the population/format, not raw size.
 

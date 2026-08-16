@@ -48,6 +48,8 @@ SOURCES = {
                       "adapter": "arena_expert"},
     "oasst2":        {"scores": "scores/oasst2.parquet", "kind": "adapter",
                       "adapter": "oasst2"},
+    "lmsys":         {"scores": "scores/lmsys.parquet", "kind": "adapter",
+                      "adapter": "lmsys"},  # gated: needs token or local files in runs/_sources/lmsys/
     **{f"se_{s}": {"scores": f"scores/se_{s}.parquet", "kind": "se", "site": s}
        for s in ("hermeneutics", "linguistics", "law", "hsm", "politics", "christianity",
                  "opensource", "mythology", "parenting", "vegetarianism",

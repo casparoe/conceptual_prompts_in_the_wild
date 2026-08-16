@@ -126,6 +126,13 @@ def load_json(path: Path, default=None):
 def hf_headers() -> dict:
     headers = {"User-Agent": "conceptual-wildchat-batch/0.1"}
     token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
+    if not token:  # fall back to the huggingface-cli cached token file
+        hf_home = os.environ.get("HF_HOME") or os.path.join(os.path.expanduser("~"), ".cache", "huggingface")
+        try:
+            with open(os.path.join(hf_home, "token")) as f:
+                token = f.read().strip()
+        except OSError:
+            token = None
     if token:
         headers["Authorization"] = f"Bearer {token}"
     return headers
