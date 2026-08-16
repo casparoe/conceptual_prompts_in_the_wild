@@ -109,10 +109,3 @@ underlying data, respect each source's license; some are restrictive.
 **Code and prompt** (`scripts/`, `prompts/`) are MIT-licensed (see `LICENSE`). The
 **scores** are provided as-is as derived metadata; the underlying conversations
 are governed by the sources above.
-
-## Citation
-
-If you use this, please cite the conceptual-reasoning framework it operationalizes:
-
-> Cooper, Oesterheld, Nguyen. *Why and how to differentially accelerate conceptual
-> reasoning capabilities.* (Update with venue/URL.)
