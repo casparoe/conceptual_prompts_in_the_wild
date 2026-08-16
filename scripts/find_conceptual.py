@@ -81,7 +81,7 @@ class Verdict:
 
 
 def _hf_headers() -> dict:
-    headers = {"User-Agent": "conceptual-wildchat-scanner/0.1"}
+    headers = {"User-Agent": "conceptual-prompts-in-the-wild-scanner/0.1"}
     token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
     if token:
         headers["Authorization"] = f"Bearer {token}"
