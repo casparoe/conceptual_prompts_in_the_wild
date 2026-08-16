@@ -4,4 +4,5 @@ __pycache__/
 docs_re_what_is_cr/
 runs/
 *.parquet
+!scores/*.parquet
 *.log
